@@ -38,32 +38,33 @@ pub struct Px2Rem {
 impl Default for Px2Rem {
     fn default() -> Px2Rem {
         // let prop_list = ;
-        let ret = Self {
+        let mut ret = Self {
             px_regex: regex!(r#""[^"]+"|'[^']+'|url\([^)]+\)|var\([^)]+\)|(\d*\.?\d+)px"#),
             root_value: 16,
             unit_precision: 5,
             selector_black_list: vec![],
             prop_list: Rc::new(vec![
-                "*".to_string(),
-                // "font-size".to_string(),
-                // "line-height".to_string(),
-                // "letter-spacing".to_string(),
+                "font".to_string(),
+                "font-size".to_string(),
+                "line-height".to_string(),
+                "letter-spacing".to_string(),
             ]),
-            // match_list: MatchList::default(),
             replace: true,
             media_query: false,
             min_pixel_value: 0f64,
             has_wild: false,
-            // exact_list: vec![],
             match_list: MatchList::default(),
             all_match: false,
         };
-
+        ret.generate_match_list();
         ret
     }
 }
 
 impl Px2Rem {
+    fn new() {
+
+    }
     pub fn generate_match_list(&mut self) {
         // let prop_list = self.prop_list;
         // self.exact_list = exact(prop_list);
