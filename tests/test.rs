@@ -95,11 +95,37 @@ mod test_pxtorem {
                 }
             )
         );
-
     }
 
+    #[test]
+    #[ignore]
+    fn test_ignore_if_prop_exists() {
+        let input = ".rule { font-size: 16px; font-size: 1rem; }";
+        let expected = unindent(
+            r"
+        .rule {
+            font-size: 16px;
+            font-size: 1rem;
+        }
+        ",
+        );
+        assert_str_eq!(expected, get_transformed_content_default(input));
+    }
 
-
+    #[test]
+    #[ignore]
+    fn test_remain_unitless_if_0() {
+        let input = ".rule { font-size: 0px; font-size: 0; }";
+        let expected = unindent(
+            r"
+        .rule {
+            font-size: 0px;
+            font-size: 0;
+        }
+        ",
+        );
+        assert_str_eq!(expected, get_transformed_content_default(input));
+    }
 }
 
 fn get_transformed_content_default(input: &str) -> String {
