@@ -19,6 +19,16 @@ use recursive_parser::{
 use regex::{Captures, Regex};
 use smol_str::SmolStr;
 
+#[derive(Default)]
+pub struct Px2RemOption {
+    pub root_value: Option<i32>,
+    pub unit_precision: Option<i32>,
+    pub selector_black_list: Option<Vec<String>>,
+    pub prop_list: Option<Vec<String>>,
+    pub replace: Option<bool>,
+    pub media_query: Option<bool>,
+    pub min_pixel_value: Option<f64>,
+}
 #[derive(Debug)]
 pub struct Px2Rem {
     px_regex: &'static Regex,
@@ -36,9 +46,14 @@ pub struct Px2Rem {
 }
 
 impl Default for Px2Rem {
+    /// default constructor will not automatically generate match list for you,         
+    /// because default function used in new constructor, if we call generate match list   
+    /// in default function, we also need to call generate match list in new constructor,  
+    /// which could introduce a bit overhead, so you if you use default constructor, you need to   
+    /// call generate match list function yourself.
     fn default() -> Px2Rem {
         // let prop_list = ;
-        let mut ret = Self {
+        let ret = Self {
             px_regex: regex!(r#""[^"]+"|'[^']+'|url\([^)]+\)|var\([^)]+\)|(\d*\.?\d+)px"#),
             root_value: 16,
             unit_precision: 5,
@@ -56,14 +71,38 @@ impl Default for Px2Rem {
             match_list: MatchList::default(),
             all_match: false,
         };
-        ret.generate_match_list();
+        // ret.generate_match_list();
         ret
     }
 }
 
 impl Px2Rem {
-    fn new() {
-
+    /// new constructor will automatically generate match list for you
+    pub fn new(option: Px2RemOption) -> Self {
+        let mut ret = Self::default();
+        if let Some(root_value) = option.root_value {
+            ret.root_value = root_value;
+        }
+        if let Some(unit_precision) = option.unit_precision {
+            ret.unit_precision = unit_precision;
+        }
+        if let Some(selector_black_list) = option.selector_black_list {
+            ret.selector_black_list = selector_black_list;
+        }
+        if let Some(prop_list) = option.prop_list {
+            ret.prop_list = Rc::new(prop_list);
+        }
+        if let Some(replace) = option.replace {
+            ret.replace = replace;
+        }
+        if let Some(media_query) = option.media_query {
+            ret.media_query = media_query;
+        }
+        if let Some(min_pixel_value) = option.min_pixel_value {
+            ret.min_pixel_value = min_pixel_value;
+        }
+        ret.generate_match_list();
+        ret
     }
     pub fn generate_match_list(&mut self) {
         // let prop_list = self.prop_list;
