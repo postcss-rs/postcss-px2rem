@@ -44,10 +44,10 @@ impl Default for Px2Rem {
             unit_precision: 5,
             selector_black_list: vec![],
             prop_list: Rc::new(vec![
-                "font".to_string(),
-                "font-size".to_string(),
-                "line-height".to_string(),
-                "letter-spacing".to_string(),
+                "*".to_string(),
+                // "font-size".to_string(),
+                // "line-height".to_string(),
+                // "letter-spacing".to_string(),
             ]),
             // match_list: MatchList::default(),
             replace: true,
@@ -83,30 +83,37 @@ impl Px2Rem {
         self.all_match = match_all;
     }
     pub fn px_replace<'a>(&self, value: &'a str) -> Cow<'a, str> {
-        self.px_regex
-            .replace_all(value, |caps: &Captures| match caps[1].parse::<f64>() {
-                Ok(pixels) => {
-                    if pixels < self.min_pixel_value {
-                        return caps[0].to_string();
-                    }
-                    let fixed_value = pixels / self.root_value as f64;
-                    if fixed_value == 0f64 {
-                        "0".to_string()
-                    } else {
-                        let mut res = format!("{:.*}", self.unit_precision as usize, fixed_value);
-                        let mut cont = res.ends_with("0");
-                        if cont {
-                            let mut temp = res.trim_end_matches("0");
-                            if temp.ends_with(".") {
-                                temp = &temp[0..temp.len() - 1];
-                            }
-                            res = temp.to_string();
+        self.px_regex.replace_all(value, |caps: &Captures| {
+            let pixels_value = &caps.get(1);
+            if let Some(pixels_value) = pixels_value {
+                match pixels_value.as_str().parse::<f64>() {
+                    Ok(pixels) => {
+                        if pixels < self.min_pixel_value {
+                            return caps[0].to_string();
                         }
-                        res.to_string() + "rem"
+                        let fixed_value = pixels / self.root_value as f64;
+                        if fixed_value == 0f64 {
+                            "0".to_string()
+                        } else {
+                            let mut res =
+                                format!("{:.*}", self.unit_precision as usize, fixed_value);
+                            let cont = res.ends_with("0");
+                            if cont {
+                                let mut temp = res.trim_end_matches("0");
+                                if temp.ends_with(".") {
+                                    temp = &temp[0..temp.len() - 1];
+                                }
+                                res = temp.to_string();
+                            }
+                            res.to_string() + "rem"
+                        }
                     }
+                    Err(_) => caps[0].to_string(),
                 }
-                Err(_) => caps[0].to_string(),
-            })
+            } else {
+                caps[0].to_string()
+            }
+        })
     }
 
     pub fn blacklisted_selector(&self, selector: &str) -> bool {

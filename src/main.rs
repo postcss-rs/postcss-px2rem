@@ -15,6 +15,6 @@ fn main() {
     px_to_rem.generate_match_list();
     px_to_rem.visit_root(&mut root);
     println!("{:?}", start.elapsed());
-    let mut writer = SimplePrettier::new(std::io::stdout(), 2);
-    writer.visit_root(&mut root).unwrap();
+    // let mut writer = SimplePrettier::new(std::io::stdout(), 2);
+    // writer.visit_root(&mut root).unwrap();
 }
