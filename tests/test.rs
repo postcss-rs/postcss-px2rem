@@ -73,7 +73,6 @@ mod test_pxtorem {
     }
 
     #[test]
-    #[ignore]
     fn ignore_px_in_custom_properties() {
         let input = ":root { --rem-14px: 14px; } .rule { font-size: var(--rem-14px); }";
         let expected = unindent(
@@ -101,16 +100,6 @@ mod test_pxtorem {
 
 
 
-    //      it("should handle < 1 values and values without a leading 0 - legacy", function() {
-    //     var rules = ".rule { margin: 0.5rem .5px -0.2px -.2em }";
-    //     var expected = ".rule { margin: 0.5rem 0.03125rem -0.0125rem -.2em }";
-    //     var options = {
-    //       propWhiteList: ["margin"]
-    //     };
-    //     var processed = postcss(pxtorem(options)).process(rules).css;
-
-    //     expect(processed).toBe(expected);
-    //   });
 }
 
 fn get_transformed_content_default(input: &str) -> String {

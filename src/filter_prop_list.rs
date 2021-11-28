@@ -44,7 +44,7 @@ pub fn ends_with<'a>(list: Rc<Vec<String>>) -> Vec<SmolStr> {
 pub fn starts_with<'a>(list: Rc<Vec<String>>) -> Vec<SmolStr> {
     list.iter()
         .filter(|prop| {
-            let reg = regex!(r"^\*[^*]+$");
+            let reg = regex!(r"^[^*!]+\*$");
             reg.is_match(prop)
         })
         .map(|prop| (&prop[0..prop.len() - 1]).into())

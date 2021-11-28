@@ -177,33 +177,33 @@ impl Px2Rem {
                 .match_list
                 .contain_list
                 .iter()
-                .any(|p| p.contains(prop))
+                .any(|p| prop.contains(p.as_str()))
             || self
                 .match_list
                 .starts_with_list
                 .iter()
-                .any(|p| p.starts_with(prop))
+                .any(|p| prop.starts_with(p.as_str()))
             || self
                 .match_list
                 .ends_with_list
                 .iter()
-                .any(|p| p.ends_with(prop)))
+                .any(|p| prop.ends_with(p.as_str())))
             && !(self.match_list.not_exact_list.iter().any(|p| p == prop)
                 || self
                     .match_list
                     .not_contain_list
                     .iter()
-                    .any(|p| p.contains(prop))
+                    .any(|p| prop.contains(p.as_str()))
                 || self
                     .match_list
                     .not_starts_list
                     .iter()
-                    .any(|p| p.starts_with(prop))
+                    .any(|p| prop.starts_with(p.as_str()))
                 || self
                     .match_list
                     .not_ends_list
                     .iter()
-                    .any(|p| p.ends_with(prop)));
+                    .any(|p| prop.ends_with(p.as_str())));
     }
 }
 #[derive(Default, Debug)]
