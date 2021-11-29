@@ -137,7 +137,7 @@ impl Px2Rem {
                         }
                         let fixed_value = pixels / self.root_value as f64;
                         if fixed_value == 0f64 {
-                            "0".to_string()
+                            caps[0].to_string()
                         } else {
                             let mut res =
                                 format!("{:.*}", self.unit_precision as usize, fixed_value);

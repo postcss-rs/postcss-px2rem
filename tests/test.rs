@@ -112,7 +112,6 @@ mod test_pxtorem {
     }
 
     #[test]
-    #[ignore]
     fn test_remain_unitless_if_0() {
         let input = ".rule { font-size: 0px; font-size: 0; }";
         let expected = unindent(
