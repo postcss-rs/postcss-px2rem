@@ -1,10 +1,3 @@
-use std::{
-    borrow::{Borrow, Cow},
-    fmt::Debug,
-    io::Write,
-    rc::Rc,
-};
-
 use crate::{
     filter_prop_list::{
         contain, ends_with, exact, not_contain, not_ends_with, not_exact, not_starts_with,
@@ -12,12 +5,19 @@ use crate::{
     },
     regex,
 };
+use multimap::MultiMap;
 use recursive_parser::{
     parser::{AtRule, Declaration, Root, Rule, RuleOrAtRuleOrDecl},
     visitor::VisitMut,
 };
 use regex::{Captures, Regex};
 use smol_str::SmolStr;
+use std::{
+    borrow::{Borrow, Cow},
+    fmt::Debug,
+    io::Write,
+    rc::Rc,
+};
 #[derive(Debug)]
 pub enum StringOrRegexp {
     Regexp(String),
@@ -47,6 +47,7 @@ pub struct Px2Rem {
     pub match_list: MatchList,
     // exact_list: Vec<&'a String>,
     all_match: bool,
+    map_stack: Vec<Vec<(SmolStr, SmolStr)>>,
 }
 
 impl Default for Px2Rem {
@@ -74,6 +75,7 @@ impl Default for Px2Rem {
             has_wild: false,
             match_list: MatchList::default(),
             all_match: false,
+            map_stack: vec![],
         };
         // ret.generate_match_list();
         ret
@@ -259,32 +261,45 @@ impl<'a> VisitMut<'a> for Px2Rem {
     fn visit_root(&mut self, root: &mut recursive_parser::parser::Root<'a>) -> () {
         for child in root.children.iter_mut() {
             match child {
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Rule(rule) => {
+                RuleOrAtRuleOrDecl::Rule(rule) => {
                     if !self.blacklisted_selector(&rule.selector.content) {
                         self.visit_rule(rule);
                     }
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::AtRule(at_rule) => {
+                RuleOrAtRuleOrDecl::AtRule(at_rule) => {
                     self.visit_at_rule(at_rule);
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Declaration(_) => unreachable!(),
+                RuleOrAtRuleOrDecl::Declaration(_) => unreachable!(),
             }
         }
     }
 
     fn visit_rule(&mut self, rule: &mut recursive_parser::parser::Rule<'a>) -> () {
+        if rule.children.len() > 1 {
+            // let mut map = MultiMap::new();
+            let mut vec = Vec::with_capacity(rule.children.len());
+            for child in rule.children.iter() {
+                if let RuleOrAtRuleOrDecl::Declaration(decl) = child {
+                    vec.push(((&decl.prop.content).into(), (&decl.value.content).into()));
+                }
+            }
+            self.map_stack.push(vec);
+        }
         for child in rule.children.iter_mut() {
             match child {
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Rule(rule) => {
+                RuleOrAtRuleOrDecl::Rule(rule) => {
                     unimplemented!()
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::AtRule(at_rule) => {
+                RuleOrAtRuleOrDecl::AtRule(at_rule) => {
                     self.visit_at_rule(at_rule);
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Declaration(decl) => {
+                RuleOrAtRuleOrDecl::Declaration(decl) => {
                     self.visit_declaration(decl);
                 }
             }
+        }
+        if rule.children.len() > 1 {
+            self.map_stack.pop();
         }
     }
 
@@ -295,13 +310,13 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
         for child in at_rule.children.iter_mut() {
             match child {
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Rule(rule) => {
+                RuleOrAtRuleOrDecl::Rule(rule) => {
                     self.visit_rule(rule);
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::AtRule(at_rule) => {
+                RuleOrAtRuleOrDecl::AtRule(at_rule) => {
                     self.visit_at_rule(at_rule);
                 }
-                recursive_parser::parser::RuleOrAtRuleOrDecl::Declaration(decl) => {
+                RuleOrAtRuleOrDecl::Declaration(decl) => {
                     self.visit_declaration(decl);
                 }
             }
@@ -316,6 +331,13 @@ impl<'a> VisitMut<'a> for Px2Rem {
             return;
         }
         let value = self.px_replace(&decl.value.content).to_string();
+        if let Some(vec) = self.map_stack.last() {
+            if vec.iter().any(|(k, v)| {
+                k.as_str() == decl.prop.content && v.as_str() == value
+            }) {
+                return;
+            }
+        }
         // TODO: decide replace or insert after
         decl.value.content = Cow::Owned(value);
     }

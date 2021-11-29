@@ -97,7 +97,6 @@ mod test_pxtorem {
     }
 
     #[test]
-    #[ignore]
     fn test_ignore_if_prop_exists() {
         let input = ".rule { font-size: 16px; font-size: 1rem; }";
         let expected = unindent(
