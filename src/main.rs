@@ -15,29 +15,8 @@ fn main() {
     });
     px_to_rem.visit_root(&mut root);
     println!("{:?}", start.elapsed());
-    let mut writer = SimplePrettier::new(std::io::stdout(), 2);
+    // let mut writer = SimplePrettier::new(std::io::stdout(), 2);
     // writer.visit_root(&mut root).unwrap();
-    let input = ".rule { font-size: 15px } .rule2 { font-size: 15px }";
-    let expected = r#"
-    .rule {
-        font-size: 0.9375rem;
-    }
-    .rule2 {
-        font-size: 15px;
-    }
-    "#;
-    assert_eq!(
-        expected,
-        get_transformed_content_new(
-            input,
-            Px2RemOption {
-                selector_black_list: Some(vec![postcss_px2rem::transform::StringOrRegexp::String(
-                    ".rule2".to_string()
-                )]),
-                ..Default::default()
-            }
-        )
-    );
 }
 
 fn get_transformed_content_new(input: &str, option: Px2RemOption) -> String {
