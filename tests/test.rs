@@ -1,12 +1,11 @@
 use postcss_px2rem::transform::{Px2Rem, Px2RemOption, SimplePrettier};
 use recursive_parser::{parse, visitor::VisitMut, WrapString};
 const BASIC_CSS: &str = ".rule { font-size: 15px; }";
+use similar_asserts::assert_str_eq;
+use unindent::unindent;
 
 #[cfg(test)]
 mod test_pxtorem {
-    use similar_asserts::assert_str_eq;
-    use unindent::unindent;
-
     use super::*;
 
     #[test]
@@ -128,6 +127,277 @@ mod test_pxtorem {
     }
 }
 
+#[cfg(test)]
+mod test_value_parsing {
+    use super::*;
+
+    #[test]
+    fn test_value_in_quotes() {
+        let input = ".rule { content: '16px'; font-family: \"16px\"; font-size: 16px; }";
+        let expected = unindent(
+            r#"
+        .rule {
+            content: '16px';
+            font-family: "16px";
+            font-size: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec!["*".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn test_not_replace_values_in_url_function() {
+        let input = ".rule { background: url(16px.jpg); font-size: 16px; }";
+        let expected = unindent(
+            r#"
+        .rule {
+            background: url(16px.jpg);
+            font-size: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec!["*".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn test_not_replace_values_with_uppercase_PX() {
+        let input = ".rule { margin: 12px calc(100% - 14PX); height: calc(100% - 20px); font-size: 12Px; line-height: 16px; }";
+        let expected = unindent(
+            r#"
+        .rule {
+            margin: 0.75rem calc(100% - 14PX);
+            height: calc(100% - 1.25rem);
+            font-size: 12Px;
+            line-height: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec!["*".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+}
+
+#[cfg(test)]
+mod test_root_value {
+    use super::*;
+
+    #[test]
+    fn test_root_value_of_10() {
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 1.5rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                BASIC_CSS,
+                Px2RemOption {
+                    root_value: Some(10),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    // TODO: maybe this should handled by loader or cli?
+    // it("should replace using different root values with different files", function() {
+    //     var css2 = ".rule { font-size: 20px }";
+    //     var expected = ".rule { font-size: 1rem }";
+    //     var options = {
+    //       rootValue: function(input) {
+    //         if (input.from.indexOf("basic.css") !== -1) {
+    //           return 15;
+    //         }
+    //         return 20;
+    //       }
+    //     };
+    //     var processed1 = postcss(pxtorem(options)).process(basicCSS, {
+    //       from: "/tmp/basic.css"
+    //     }).css;
+    //     var processed2 = postcss(pxtorem(options)).process(css2, {
+    //       from: "/tmp/whatever.css"
+    //     }).css;
+
+    //     expect(processed1).toBe(expected);
+    //     expect(processed2).toBe(expected);
+    //   });
+}
+#[cfg(test)]
+mod test_unit_precision {
+    use super::*;
+
+    #[test]
+    fn test_precision_two() {
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 0.94rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                BASIC_CSS,
+                Px2RemOption {
+                    unit_precision: Some(2),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+}
+
+#[cfg(test)]
+mod test_prop_list {
+    use super::*;
+
+    #[test]
+    fn test_only_replace_prop_in_whitelist() {
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 15px;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                BASIC_CSS,
+                Px2RemOption {
+                    prop_list: Some(vec!["font".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+    #[test]
+    fn test_only_replace_prop_in_whitelist_two() {
+        let input = ".rule { margin: 16px; margin-left: 10px }";
+        let expected = unindent(
+            r#"
+        .rule {
+            margin: 1rem;
+            margin-left: 10px;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec!["margin".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+    #[test]
+    fn test_only_replace_prop_in_whitelist_three() {
+        let input = ".rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }";
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 1rem;
+            margin: 1rem;
+            margin-left: 5px;
+            padding: 5px;
+            padding-right: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec![
+                        "*font*".to_string(),
+                        "margin*".to_string(),
+                        "!margin-left".to_string(),
+                        "*-right".to_string(),
+                        "pad".to_string()
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn test_only_replace_prop_in_whitelist_with_wildcard() {
+        let input = ".rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }";
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 16px;
+            margin: 1rem;
+            margin-left: 5px;
+            padding: 5px;
+            padding-right: 16px;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    prop_list: Some(vec![
+                        "*".to_string(),
+                        "!*padding*".to_string(),
+                        "!margin-left".to_string(),
+                        "!font*".to_string()
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+    // ignore this case, since we don't have legacy option
+    //     it("should replace all properties when white list is empty", function() {
+    //     var rules = ".rule { margin: 16px; font-size: 15px }";
+    //     var expected = ".rule { margin: 1rem; font-size: 0.9375rem }";
+    //     var options = {
+    //       propWhiteList: []
+    //     };
+    //     var processed = postcss(pxtorem(options)).process(rules).css;
+
+    //     expect(processed).toBe(expected);
+    //   });
+}
 fn get_transformed_content_default(input: &str) -> String {
     let mut root = parse(input, None);
 
