@@ -44,7 +44,7 @@ pub struct Px2Rem {
     media_query: bool,
     min_pixel_value: f64,
     has_wild: bool, //   exclude: null we don't need the prop, since this is always used for cli
-    match_list: MatchList,
+    pub match_list: MatchList,
     // exact_list: Vec<&'a String>,
     all_match: bool,
 }
@@ -164,7 +164,8 @@ impl Px2Rem {
         if self.selector_black_list.len() == 0 {
             return false;
         }
-        let BLACK_LIST_RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        let BLACK_LIST_RE: once_cell::sync::OnceCell<regex::Regex> =
+            once_cell::sync::OnceCell::new();
         // TODO: this implementation is inefficient
         let re = BLACK_LIST_RE.get_or_init(|| {
             regex::Regex::new(
@@ -188,8 +189,7 @@ impl Px2Rem {
             false
         } else {
             re.is_match(selector)
-        })
-        || {
+        }) || {
             self.selector_black_list
                 .iter()
                 .any(|pattern| match pattern {
@@ -244,15 +244,15 @@ impl Px2Rem {
     }
 }
 #[derive(Default, Debug)]
-struct MatchList {
-    exact_list: Vec<SmolStr>,
-    contain_list: Vec<SmolStr>,
-    starts_with_list: Vec<SmolStr>,
-    ends_with_list: Vec<SmolStr>,
-    not_exact_list: Vec<SmolStr>,
-    not_contain_list: Vec<SmolStr>,
-    not_starts_list: Vec<SmolStr>,
-    not_ends_list: Vec<SmolStr>,
+pub struct MatchList {
+    pub exact_list: Vec<SmolStr>,
+    pub contain_list: Vec<SmolStr>,
+    pub starts_with_list: Vec<SmolStr>,
+    pub ends_with_list: Vec<SmolStr>,
+    pub not_exact_list: Vec<SmolStr>,
+    pub not_contain_list: Vec<SmolStr>,
+    pub not_starts_list: Vec<SmolStr>,
+    pub not_ends_list: Vec<SmolStr>,
 }
 
 impl<'a> VisitMut<'a> for Px2Rem {
@@ -288,7 +288,25 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
     }
 
-    fn visit_at_rule(&mut self, _at_rule: &mut recursive_parser::parser::AtRule<'a>) -> () {}
+    fn visit_at_rule(&mut self, at_rule: &mut recursive_parser::parser::AtRule<'a>) -> () {
+        if self.media_query && at_rule.name == "media" && at_rule.params.contains("px") {
+            let value = self.px_replace(&at_rule.params).to_string();
+            at_rule.params = Cow::Owned(value);
+        }
+        for child in at_rule.children.iter_mut() {
+            match child {
+                recursive_parser::parser::RuleOrAtRuleOrDecl::Rule(rule) => {
+                    self.visit_rule(rule);
+                }
+                recursive_parser::parser::RuleOrAtRuleOrDecl::AtRule(at_rule) => {
+                    self.visit_at_rule(at_rule);
+                }
+                recursive_parser::parser::RuleOrAtRuleOrDecl::Declaration(decl) => {
+                    self.visit_declaration(decl);
+                }
+            }
+        }
+    }
 
     fn visit_declaration(&mut self, decl: &mut recursive_parser::parser::Declaration<'a>) -> () {
         if !decl.value.content.contains("px") {
@@ -374,7 +392,7 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
     fn visit_at_rule(&mut self, at_rule: &mut AtRule<'a>) -> std::io::Result<()> {
         write!(
             self.writer,
-            "{}{} {} {}\n",
+            "{}@{} {} {}\n",
             " ".repeat(self.level * self.indent),
             at_rule.name,
             at_rule.params,

@@ -511,17 +511,13 @@ mod test_media_query {
 
     #[test]
     fn test_replace_px_in_media_query() {
-        let input = "body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-size: 16px; }";
+        let input = "@media (min-width: 500px) { .rule { font-size: 16px } }";
         let expected = unindent(
             r#"
-        body {
-            font-size: 16px;
-        }
-        .class-body {
-            font-size: 1rem;
-        }
-        .simple-class {
-            font-size: 1rem;
+        @media (min-width: 31.25rem) {
+            .rule {
+                font-size: 1rem;
+            }
         }
         "#,
         );
@@ -530,13 +526,191 @@ mod test_media_query {
             get_transformed_content_new(
                 input,
                 Px2RemOption {
-                    selector_black_list: Some(vec![
-                        postcss_px2rem::transform::StringOrRegexp::Regexp("^body$".to_string())
-                    ]),
+                    media_query: Some(true),
                     ..Default::default()
                 }
             )
         );
+    }
+}
+
+#[cfg(test)]
+mod test_min_pixel_value {
+    use super::*;
+
+    #[test]
+    fn test_not_replace_value_below_min_pixel_value() {
+        let input = ".rule { border: 1px solid #000; font-size: 16px; margin: 1px 10px; }";
+        let expected = unindent(
+            r#"
+        .rule {
+            border: 1px solid #000;
+            font-size: 1rem;
+            margin: 1px 0.625rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    min_pixel_value: Some(2f64),
+                    prop_list: Some(vec!["*".to_string()]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+}
+
+#[cfg(test)]
+mod test_filter_prop_list {
+    use super::*;
+
+    #[test]
+    fn test_exact() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "margin".to_string(),
+                "!padding".to_string(),
+                "*border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(
+            px_to_rem.match_list.exact_list.join(","),
+            "font-size,margin"
+        );
+    }
+    #[test]
+    fn test_contain() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "*border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.contain_list.join(","), "margin,border");
+    }
+
+    #[test]
+    fn test_start() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.starts_with_list.join(","), "border");
+    }
+
+    #[test]
+    fn test_end() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.ends_with_list.join(","), "y");
+    }
+
+    #[test]
+    fn test_not_exact() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.not_exact_list.join(","), "padding");
+    }
+
+    #[test]
+    fn test_not_start() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.not_contain_list.join(","), "font");
+    }
+    #[test]
+    fn test_not_contain() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "border*".to_string(),
+                "*".to_string(),
+                "*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.not_contain_list.join(","), "font");
+    }
+
+    #[test]
+    fn test_not_end() {
+        let mut px_to_rem = Px2Rem::new(Px2RemOption {
+            prop_list: Some(vec![
+                "font-size".to_string(),
+                "*margin*".to_string(),
+                "!padding".to_string(),
+                "!border*".to_string(),
+                "*".to_string(),
+                "!*y".to_string(),
+                "!*font*".to_string(),
+            ]),
+            ..Default::default()
+        });
+        px_to_rem.generate_match_list();
+        assert_str_eq!(px_to_rem.match_list.not_ends_list.join(","), "y");
     }
 }
 fn get_transformed_content_default(input: &str) -> String {
