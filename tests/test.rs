@@ -490,6 +490,55 @@ mod test_selector_black_list {
         );
     }
 }
+// We don't consider replace now, just think such `.test {width: 16px; width: 1rem;}` is meaningless
+// will execute as follow `.test {width: 1rem}`
+
+// describe("replace", function() {
+//     it("should leave fallback pixel unit with root em value", function() {
+//       var options = {
+//         replace: false
+//       };
+//       var processed = postcss(pxtorem(options)).process(basicCSS).css;
+//       var expected = ".rule { font-size: 15px; font-size: 0.9375rem }";
+
+//       expect(processed).toBe(expected);
+//     });
+//   });
+
+#[cfg(test)]
+mod test_media_query {
+    use super::*;
+
+    #[test]
+    fn test_replace_px_in_media_query() {
+        let input = "body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-size: 16px; }";
+        let expected = unindent(
+            r#"
+        body {
+            font-size: 16px;
+        }
+        .class-body {
+            font-size: 1rem;
+        }
+        .simple-class {
+            font-size: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    selector_black_list: Some(vec![
+                        postcss_px2rem::transform::StringOrRegexp::Regexp("^body$".to_string())
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+}
 fn get_transformed_content_default(input: &str) -> String {
     let mut root = parse(input, None);
 
