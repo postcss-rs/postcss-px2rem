@@ -398,6 +398,98 @@ mod test_prop_list {
     //     expect(processed).toBe(expected);
     //   });
 }
+
+#[cfg(test)]
+mod test_selector_black_list {
+    use super::*;
+
+    #[test]
+    fn test_ignore_rule_when_selector_in_black_list() {
+        let input = ".rule { font-size: 15px } .rule2 { font-size: 15px }";
+        let expected = unindent(
+            r#"
+        .rule {
+            font-size: 0.9375rem;
+        }
+        .rule2 {
+            font-size: 15px;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    selector_black_list: Some(vec![
+                        postcss_px2rem::transform::StringOrRegexp::String(".rule2".to_string())
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn test_ignore_rule_every_selector_with_body_dollar() {
+        let input = "body { font-size: 16px; } .class-body$ { font-size: 16px; } .simple-class { font-size: 16px; }";
+        let expected = unindent(
+            r#"
+        body {
+            font-size: 1rem;
+        }
+        .class-body$ {
+            font-size: 16px;
+        }
+        .simple-class {
+            font-size: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    selector_black_list: Some(vec![
+                        postcss_px2rem::transform::StringOrRegexp::String("body$".to_string())
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn test_ignore_rule_regex_body() {
+        let input = "body { font-size: 16px; } .class-body { font-size: 16px; } .simple-class { font-size: 16px; }";
+        let expected = unindent(
+            r#"
+        body {
+            font-size: 16px;
+        }
+        .class-body {
+            font-size: 1rem;
+        }
+        .simple-class {
+            font-size: 1rem;
+        }
+        "#,
+        );
+        assert_str_eq!(
+            expected,
+            get_transformed_content_new(
+                input,
+                Px2RemOption {
+                    selector_black_list: Some(vec![
+                        postcss_px2rem::transform::StringOrRegexp::Regexp("^body$".to_string())
+                    ]),
+                    ..Default::default()
+                }
+            )
+        );
+    }
+}
 fn get_transformed_content_default(input: &str) -> String {
     let mut root = parse(input, None);
 

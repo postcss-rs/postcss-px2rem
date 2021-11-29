@@ -18,12 +18,16 @@ use recursive_parser::{
 };
 use regex::{Captures, Regex};
 use smol_str::SmolStr;
-
+#[derive(Debug)]
+pub enum StringOrRegexp {
+    Regexp(String),
+    String(String),
+}
 #[derive(Default)]
 pub struct Px2RemOption {
     pub root_value: Option<i32>,
     pub unit_precision: Option<i32>,
-    pub selector_black_list: Option<Vec<String>>,
+    pub selector_black_list: Option<Vec<StringOrRegexp>>,
     pub prop_list: Option<Vec<String>>,
     pub replace: Option<bool>,
     pub media_query: Option<bool>,
@@ -34,7 +38,7 @@ pub struct Px2Rem {
     px_regex: &'static Regex,
     root_value: i32,
     unit_precision: i32,
-    selector_black_list: Vec<String>,
+    selector_black_list: Vec<StringOrRegexp>,
     prop_list: Rc<Vec<String>>,
     replace: bool,
     media_query: bool,
@@ -157,9 +161,42 @@ impl Px2Rem {
     }
 
     pub fn blacklisted_selector(&self, selector: &str) -> bool {
-        let re = BLACK_LIST_RE
-            .get_or_init(|| regex::Regex::new(&self.selector_black_list.join("|")).unwrap());
-        re.is_match(selector)
+        if self.selector_black_list.len() == 0 {
+            return false;
+        }
+        let BLACK_LIST_RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        // TODO: this implementation is inefficient
+        let re = BLACK_LIST_RE.get_or_init(|| {
+            regex::Regex::new(
+                &self
+                    .selector_black_list
+                    .iter()
+                    .filter(|re| match re {
+                        StringOrRegexp::Regexp(_) => true,
+                        StringOrRegexp::String(_) => false,
+                    })
+                    .map(|reg| match reg {
+                        StringOrRegexp::Regexp(str) => str.to_string(),
+                        StringOrRegexp::String(_) => unreachable!(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join("|"),
+            )
+            .unwrap()
+        });
+        (if re.as_str().len() == 0 {
+            false
+        } else {
+            re.is_match(selector)
+        })
+        || {
+            self.selector_black_list
+                .iter()
+                .any(|pattern| match pattern {
+                    StringOrRegexp::Regexp(_) => false,
+                    StringOrRegexp::String(string) => selector.contains(string),
+                })
+        }
     }
 
     fn is_match(&self, prop: &str) -> bool {
@@ -217,15 +254,15 @@ struct MatchList {
     not_starts_list: Vec<SmolStr>,
     not_ends_list: Vec<SmolStr>,
 }
-static BLACK_LIST_RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
 
 impl<'a> VisitMut<'a> for Px2Rem {
     fn visit_root(&mut self, root: &mut recursive_parser::parser::Root<'a>) -> () {
         for child in root.children.iter_mut() {
             match child {
                 recursive_parser::parser::RuleOrAtRuleOrDecl::Rule(rule) => {
-                    //TODO: judge if selector is in black list
-                    self.visit_rule(rule);
+                    if !self.blacklisted_selector(&rule.selector.content) {
+                        self.visit_rule(rule);
+                    }
                 }
                 recursive_parser::parser::RuleOrAtRuleOrDecl::AtRule(at_rule) => {
                     self.visit_at_rule(at_rule);
