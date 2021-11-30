@@ -1,28 +1,19 @@
-use crate::{
-    filter_prop_list::{
-        contain, ends_with, exact, not_contain, not_ends_with, not_exact, not_starts_with,
-        starts_with,
-    },
-    regex,
+use crate::filter_prop_list::{
+    contain, ends_with, exact, not_contain, not_ends_with, not_exact, not_starts_with, starts_with,
 };
-use multimap::MultiMap;
-use recursive_parser::{
-    parser::{AtRule, Declaration, Root, Rule, RuleOrAtRuleOrDecl},
-    visitor::VisitMut,
-};
+use crate::regex;
+use recursive_parser::parser::{AtRule, Declaration, Root, Rule, RuleOrAtRuleOrDecl};
+use recursive_parser::visitor::VisitMut;
 use regex::{Captures, Regex};
 use smol_str::SmolStr;
-use std::{
-    borrow::{Borrow, Cow},
-    fmt::Debug,
-    io::Write,
-    rc::Rc,
-};
+use std::{borrow::Cow, fmt::Debug, io::Write, rc::Rc};
+
 #[derive(Debug)]
 pub enum StringOrRegexp {
     Regexp(String),
     String(String),
 }
+
 #[derive(Default)]
 pub struct Px2RemOption {
     pub root_value: Option<i32>,
@@ -33,6 +24,7 @@ pub struct Px2RemOption {
     pub media_query: Option<bool>,
     pub min_pixel_value: Option<f64>,
 }
+
 #[derive(Debug)]
 pub struct Px2Rem {
     px_regex: &'static Regex,
@@ -43,7 +35,7 @@ pub struct Px2Rem {
     replace: bool,
     media_query: bool,
     min_pixel_value: f64,
-    has_wild: bool, //   exclude: null we don't need the prop, since this is always used for cli
+    has_wild: bool, // exclude: null we don't need the prop, since this is always used for cli
     pub match_list: MatchList,
     // exact_list: Vec<&'a String>,
     all_match: bool,
@@ -110,6 +102,7 @@ impl Px2Rem {
         ret.generate_match_list();
         ret
     }
+
     pub fn generate_match_list(&mut self) {
         // let prop_list = self.prop_list;
         // self.exact_list = exact(prop_list);
@@ -128,6 +121,7 @@ impl Px2Rem {
         self.has_wild = has_wild;
         self.all_match = match_all;
     }
+
     pub fn px_replace<'a>(&self, value: &'a str) -> Cow<'a, str> {
         self.px_regex.replace_all(value, |caps: &Captures| {
             let pixels_value = &caps.get(1);
@@ -143,15 +137,15 @@ impl Px2Rem {
                         } else {
                             let mut res =
                                 format!("{:.*}", self.unit_precision as usize, fixed_value);
-                            let cont = res.ends_with("0");
+                            let cont = res.ends_with('0');
                             if cont {
-                                let mut temp = res.trim_end_matches("0");
-                                if temp.ends_with(".") {
+                                let mut temp = res.trim_end_matches('0');
+                                if temp.ends_with('.') {
                                     temp = &temp[0..temp.len() - 1];
                                 }
                                 res = temp.to_string();
                             }
-                            res.to_string() + "rem"
+                            res + "rem"
                         }
                     }
                     Err(_) => caps[0].to_string(),
@@ -162,8 +156,9 @@ impl Px2Rem {
         })
     }
 
+    #[allow(non_snake_case)]
     pub fn blacklisted_selector(&self, selector: &str) -> bool {
-        if self.selector_black_list.len() == 0 {
+        if self.selector_black_list.is_empty() {
             return false;
         }
         let BLACK_LIST_RE: once_cell::sync::OnceCell<regex::Regex> =
@@ -187,7 +182,7 @@ impl Px2Rem {
             )
             .unwrap()
         });
-        (if re.as_str().len() == 0 {
+        (if re.as_str().is_empty() {
             false
         } else {
             re.is_match(selector)
@@ -245,6 +240,7 @@ impl Px2Rem {
                     .any(|p| prop.ends_with(p.as_str())));
     }
 }
+
 #[derive(Default, Debug)]
 pub struct MatchList {
     pub exact_list: Vec<SmolStr>,
@@ -258,7 +254,7 @@ pub struct MatchList {
 }
 
 impl<'a> VisitMut<'a> for Px2Rem {
-    fn visit_root(&mut self, root: &mut recursive_parser::parser::Root<'a>) -> () {
+    fn visit_root(&mut self, root: &mut recursive_parser::parser::Root<'a>) {
         for child in root.children.iter_mut() {
             match child {
                 RuleOrAtRuleOrDecl::Rule(rule) => {
@@ -274,7 +270,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
     }
 
-    fn visit_rule(&mut self, rule: &mut recursive_parser::parser::Rule<'a>) -> () {
+    fn visit_rule(&mut self, rule: &mut recursive_parser::parser::Rule<'a>) {
         if rule.children.len() > 1 {
             // let mut map = MultiMap::new();
             let mut vec = Vec::with_capacity(rule.children.len());
@@ -287,7 +283,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
         for child in rule.children.iter_mut() {
             match child {
-                RuleOrAtRuleOrDecl::Rule(rule) => {
+                RuleOrAtRuleOrDecl::Rule(_rule) => {
                     unimplemented!()
                 }
                 RuleOrAtRuleOrDecl::AtRule(at_rule) => {
@@ -303,7 +299,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
     }
 
-    fn visit_at_rule(&mut self, at_rule: &mut recursive_parser::parser::AtRule<'a>) -> () {
+    fn visit_at_rule(&mut self, at_rule: &mut recursive_parser::parser::AtRule<'a>) {
         if self.media_query && at_rule.name == "media" && at_rule.params.contains("px") {
             let value = self.px_replace(&at_rule.params).to_string();
             at_rule.params = Cow::Owned(value);
@@ -323,7 +319,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
     }
 
-    fn visit_declaration(&mut self, decl: &mut recursive_parser::parser::Declaration<'a>) -> () {
+    fn visit_declaration(&mut self, decl: &mut recursive_parser::parser::Declaration<'a>) {
         if !decl.value.content.contains("px") {
             return;
         }
@@ -332,9 +328,10 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
         let value = self.px_replace(&decl.value.content).to_string();
         if let Some(vec) = self.map_stack.last() {
-            if vec.iter().any(|(k, v)| {
-                k.as_str() == decl.prop.content && v.as_str() == value
-            }) {
+            if vec
+                .iter()
+                .any(|(k, v)| k.as_str() == decl.prop.content && v.as_str() == value)
+            {
                 return;
             }
         }
@@ -359,6 +356,7 @@ impl<W: Write> SimplePrettier<W> {
         }
     }
 }
+
 impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier<W> {
     fn visit_root(&mut self, root: &mut Root<'a>) -> std::io::Result<()> {
         for child in root.children.iter_mut() {
@@ -378,7 +376,7 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
     }
 
     fn visit_rule(&mut self, rule: &mut Rule<'a>) -> std::io::Result<()> {
-        self.writer.write(
+        self.writer.write_all(
             format!(
                 "{}{} {}\n",
                 " ".repeat(self.level * self.indent),
@@ -402,23 +400,17 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
             }
         }
         self.level -= 1;
-        write!(
-            self.writer,
-            "{}{}\n",
-            " ".repeat(self.level * self.indent),
-            "}"
-        )?;
+        writeln!(self.writer, "{}}}", " ".repeat(self.level * self.indent))?;
         Ok(())
     }
 
     fn visit_at_rule(&mut self, at_rule: &mut AtRule<'a>) -> std::io::Result<()> {
-        write!(
+        writeln!(
             self.writer,
-            "{}@{} {} {}\n",
+            "{}@{} {} {{",
             " ".repeat(self.level * self.indent),
             at_rule.name,
-            at_rule.params,
-            "{"
+            at_rule.params
         )?;
         self.level += 1;
         for child in at_rule.children.iter_mut() {
@@ -435,18 +427,13 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
             }
         }
         self.level -= 1;
-        write!(
-            self.writer,
-            "{}{}\n",
-            " ".repeat(self.level * self.indent),
-            "}"
-        )
+        writeln!(self.writer, "{}}}", " ".repeat(self.level * self.indent))
     }
 
     fn visit_declaration(&mut self, decl: &mut Declaration<'a>) -> std::io::Result<()> {
-        write!(
+        writeln!(
             self.writer,
-            "{}{}: {};\n",
+            "{}{}: {};",
             " ".repeat(self.level * self.indent),
             decl.prop,
             decl.value

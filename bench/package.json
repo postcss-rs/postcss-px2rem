@@ -1,15 +1,9 @@
 {
   "name": "bench",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "author": "the postcss-rs authors",
+  "license": "MIT",
   "devDependencies": {
-    "postcss": "^8.4.4",
-    "postcss-pxtorem": "^6.0.0"
+    "postcss": "*",
+    "postcss-pxtorem": "*"
   }
 }
