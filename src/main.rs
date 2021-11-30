@@ -1,6 +1,7 @@
 use postcss_px2rem::transform::{Px2Rem, Px2RemOption, SimplePrettier};
 use recursive_parser::{parse, visitor::VisitMut, WrapString};
 use std::time::Instant;
+
 fn main() {
     let css = ".rule { margin: 12px calc(100% - 14PX); height: calc(100% - 20px); font-size: 12Px; line-height: 16px; }";
     let css2 = include_str!("../assets/bootstrap.css");

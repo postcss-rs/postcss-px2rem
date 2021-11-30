@@ -18,11 +18,13 @@ use std::{
     io::Write,
     rc::Rc,
 };
+
 #[derive(Debug)]
 pub enum StringOrRegexp {
     Regexp(String),
     String(String),
 }
+
 #[derive(Default)]
 pub struct Px2RemOption {
     pub root_value: Option<i32>,
@@ -33,6 +35,7 @@ pub struct Px2RemOption {
     pub media_query: Option<bool>,
     pub min_pixel_value: Option<f64>,
 }
+
 #[derive(Debug)]
 pub struct Px2Rem {
     px_regex: &'static Regex,
@@ -43,7 +46,7 @@ pub struct Px2Rem {
     replace: bool,
     media_query: bool,
     min_pixel_value: f64,
-    has_wild: bool, //   exclude: null we don't need the prop, since this is always used for cli
+    has_wild: bool, // exclude: null we don't need the prop, since this is always used for cli
     pub match_list: MatchList,
     // exact_list: Vec<&'a String>,
     all_match: bool,
@@ -110,6 +113,7 @@ impl Px2Rem {
         ret.generate_match_list();
         ret
     }
+
     pub fn generate_match_list(&mut self) {
         // let prop_list = self.prop_list;
         // self.exact_list = exact(prop_list);
@@ -128,6 +132,7 @@ impl Px2Rem {
         self.has_wild = has_wild;
         self.all_match = match_all;
     }
+
     pub fn px_replace<'a>(&self, value: &'a str) -> Cow<'a, str> {
         self.px_regex.replace_all(value, |caps: &Captures| {
             let pixels_value = &caps.get(1);
@@ -187,7 +192,7 @@ impl Px2Rem {
             )
             .unwrap()
         });
-        (if re.as_str().len() == 0 {
+        (if re.as_str().is_empty() {
             false
         } else {
             re.is_match(selector)
@@ -245,6 +250,7 @@ impl Px2Rem {
                     .any(|p| prop.ends_with(p.as_str())));
     }
 }
+
 #[derive(Default, Debug)]
 pub struct MatchList {
     pub exact_list: Vec<SmolStr>,
@@ -332,9 +338,10 @@ impl<'a> VisitMut<'a> for Px2Rem {
         }
         let value = self.px_replace(&decl.value.content).to_string();
         if let Some(vec) = self.map_stack.last() {
-            if vec.iter().any(|(k, v)| {
-                k.as_str() == decl.prop.content && v.as_str() == value
-            }) {
+            if vec
+                .iter()
+                .any(|(k, v)| k.as_str() == decl.prop.content && v.as_str() == value)
+            {
                 return;
             }
         }
@@ -359,6 +366,7 @@ impl<W: Write> SimplePrettier<W> {
         }
     }
 }
+
 impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier<W> {
     fn visit_root(&mut self, root: &mut Root<'a>) -> std::io::Result<()> {
         for child in root.children.iter_mut() {

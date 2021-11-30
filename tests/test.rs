@@ -1,8 +1,9 @@
 use postcss_px2rem::transform::{Px2Rem, Px2RemOption, SimplePrettier};
 use recursive_parser::{parse, visitor::VisitMut, WrapString};
-const BASIC_CSS: &str = ".rule { font-size: 15px; }";
 use similar_asserts::assert_str_eq;
 use unindent::unindent;
+
+const BASIC_CSS: &str = ".rule { font-size: 15px; }";
 
 #[cfg(test)]
 mod test_pxtorem {
@@ -25,6 +26,7 @@ mod test_pxtorem {
         );
         assert_str_eq!(expected, actual);
     }
+
     #[test]
     fn test_should_replace_px_with_rem() {
         let expected = unindent(
@@ -250,6 +252,7 @@ mod test_root_value {
     //     expect(processed2).toBe(expected);
     //   });
 }
+
 #[cfg(test)]
 mod test_unit_precision {
     use super::*;
@@ -300,6 +303,7 @@ mod test_prop_list {
             )
         );
     }
+
     #[test]
     fn test_only_replace_prop_in_whitelist_two() {
         let input = ".rule { margin: 16px; margin-left: 10px }";
@@ -322,6 +326,7 @@ mod test_prop_list {
             )
         );
     }
+
     #[test]
     fn test_only_replace_prop_in_whitelist_three() {
         let input = ".rule { font-size: 16px; margin: 16px; margin-left: 5px; padding: 5px; padding-right: 16px }";
@@ -488,6 +493,7 @@ mod test_selector_black_list {
         );
     }
 }
+
 // We don't consider replace now, just think such `.test {width: 16px; width: 1rem;}` is meaningless
 // will execute as follow `.test {width: 1rem}`
 
@@ -586,6 +592,7 @@ mod test_filter_prop_list {
             "font-size,margin"
         );
     }
+
     #[test]
     fn test_contain() {
         let mut px_to_rem = Px2Rem::new(Px2RemOption {
@@ -675,6 +682,7 @@ mod test_filter_prop_list {
         px_to_rem.generate_match_list();
         assert_str_eq!(px_to_rem.match_list.not_contain_list.join(","), "font");
     }
+
     #[test]
     fn test_not_contain() {
         let mut px_to_rem = Px2Rem::new(Px2RemOption {
@@ -711,6 +719,7 @@ mod test_filter_prop_list {
         assert_str_eq!(px_to_rem.match_list.not_ends_list.join(","), "y");
     }
 }
+
 // these test case should handled by cli or node binding
 // describe("exclude", function() {
 //   it("should ignore file path with exclude RegEx", function() {
@@ -745,6 +754,7 @@ mod test_filter_prop_list {
 //     expect(processed).toBe(basicCSS);
 //   });
 // });
+
 fn get_transformed_content_default(input: &str) -> String {
     let mut root = parse(input, None);
 
