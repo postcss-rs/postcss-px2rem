@@ -376,7 +376,7 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
     }
 
     fn visit_rule(&mut self, rule: &mut Rule<'a>) -> std::io::Result<()> {
-        self.writer.write(
+        self.writer.write_all(
             format!(
                 "{}{} {}\n",
                 " ".repeat(self.level * self.indent),

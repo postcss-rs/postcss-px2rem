@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+#![allow(dead_code)]
 use postcss_px2rem::transform::{Px2Rem, Px2RemOption, SimplePrettier};
 use recursive_parser::{parse, visitor::VisitMut, WrapString};
 use std::time::Instant;
