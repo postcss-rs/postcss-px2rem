@@ -1,6 +1,6 @@
-use std::{borrow::Cow, rc::Rc};
-use smol_str::SmolStr;
 use crate::regex;
+use smol_str::SmolStr;
+use std::rc::Rc;
 
 pub fn exact<'a>(list: Rc<Vec<String>>) -> Vec<SmolStr> {
     list.iter()

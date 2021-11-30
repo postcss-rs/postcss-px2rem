@@ -179,6 +179,7 @@ mod test_value_parsing {
     }
 
     #[test]
+    #[allow(non_snake_case)]
     fn test_not_replace_values_with_uppercase_PX() {
         let input = ".rule { margin: 12px calc(100% - 14PX); height: calc(100% - 20px); font-size: 12Px; line-height: 16px; }";
         let expected = unindent(
