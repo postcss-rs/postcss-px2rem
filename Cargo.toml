@@ -8,7 +8,6 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-multimap = "0.8.3"
 once_cell = "1.8.0"
 recursive-parser = { git = "https://github.com/postcss-rs/postcss-rs" }
 regex = "1.5.4"
