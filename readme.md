@@ -7,4 +7,4 @@ we pass 29 of official 43 test case.
 3. one of rest cases in root_value may test in cli or binding
 4. one of rest cases is `replace` option test which We don't want to support now, insert the rem replacement after original declaration would get the same result as directly replace the original declaration which seems useless (If any scenario  this is intentional,let us know).
 
-29 + 10 + 3 + 1 = 43
+29 + 9 + 3 + 1 + 1 = 43
