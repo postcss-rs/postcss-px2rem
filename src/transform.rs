@@ -272,7 +272,6 @@ impl<'a> VisitMut<'a> for Px2Rem {
 
     fn visit_rule(&mut self, rule: &mut recursive_parser::parser::Rule<'a>) {
         if rule.children.len() > 1 {
-            // let mut map = MultiMap::new();
             let mut vec = Vec::with_capacity(rule.children.len());
             for child in rule.children.iter() {
                 if let RuleOrAtRuleOrDecl::Declaration(decl) = child {
