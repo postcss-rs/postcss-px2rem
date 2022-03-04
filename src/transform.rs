@@ -258,7 +258,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
         for child in root.children.iter_mut() {
             match child {
                 RuleOrAtRuleOrDecl::Rule(rule) => {
-                    if !self.blacklisted_selector(&rule.selector.content) {
+                    if !self.blacklisted_selector(&rule.selector) {
                         self.visit_rule(rule);
                     }
                 }
@@ -276,7 +276,7 @@ impl<'a> VisitMut<'a> for Px2Rem {
             let mut vec = Vec::with_capacity(rule.children.len());
             for child in rule.children.iter() {
                 if let RuleOrAtRuleOrDecl::Declaration(decl) = child {
-                    vec.push(((&decl.prop.content).into(), (&decl.value.content).into()));
+                    vec.push(((&decl.prop).into(), (&decl.value).into()));
                 }
             }
             self.map_stack.push(vec);
@@ -320,23 +320,23 @@ impl<'a> VisitMut<'a> for Px2Rem {
     }
 
     fn visit_declaration(&mut self, decl: &mut recursive_parser::parser::Declaration<'a>) {
-        if !decl.value.content.contains("px") {
+        if !decl.value.contains("px") {
             return;
         }
-        if !self.is_match(&decl.prop.content) {
+        if !self.is_match(&decl.prop) {
             return;
         }
-        let value = self.px_replace(&decl.value.content).to_string();
+        let value = self.px_replace(&decl.value).to_string();
         if let Some(vec) = self.map_stack.last() {
             if vec
                 .iter()
-                .any(|(k, v)| k.as_str() == decl.prop.content && v.as_str() == value)
+                .any(|(k, v)| k.as_str() == decl.prop && v.as_str() == value)
             {
                 return;
             }
         }
         // TODO: decide replace or insert after
-        decl.value.content = Cow::Owned(value);
+        decl.value = Cow::Owned(value);
     }
 }
 
@@ -380,7 +380,7 @@ impl<'a, W: std::io::Write> VisitMut<'a, std::io::Result<()>> for SimplePrettier
             format!(
                 "{}{} {}\n",
                 " ".repeat(self.level * self.indent),
-                rule.selector.content,
+                rule.selector,
                 "{"
             )
             .as_bytes(),
